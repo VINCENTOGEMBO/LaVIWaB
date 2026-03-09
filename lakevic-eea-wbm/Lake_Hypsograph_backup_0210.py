@@ -11,7 +11,55 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from rasterio.mask import mask
+import geopandas as gpd
 
+from rasterio.warp import reproject, Resampling 
+
+
+#%%
+
+
+from rasterio.warp import calculate_default_transform, reproject, Resampling
+
+
+# Input raster
+bathymetry_tiff = r"C:\DATA\Lake V Bathymentry\lake_bathymetry.tif"
+out_raster = r"C:\DATA\Lake V Bathymentry\lake_bathymetry_UTM.tif"
+
+with rasterio.open(bathymetry_tiff) as src:
+    # Choose appropriate UTM zone for Lake Victoria (approx. Zone 36N)
+    dst_crs = 'EPSG:32636'  # UTM Zone 36N
+    
+    transform, width, height = calculate_default_transform(
+        src.crs, dst_crs, src.width, src.height, *src.bounds
+    )
+    
+    kwargs = src.meta.copy()
+    kwargs.update({
+        'crs': dst_crs,
+        'transform': transform,
+        'width': width,
+        'height': height
+    })
+
+    # Create the reprojected raster
+    with rasterio.open(out_raster, 'w', **kwargs) as dst:
+        for i in range(1, src.count + 1):
+            reproject(
+                source=rasterio.band(src, i),
+                destination=rasterio.band(dst, i),
+                src_transform=src.transform,
+                src_crs=src.crs,
+                dst_transform=transform,
+                dst_crs=dst_crs,
+                resampling=Resampling.bilinear
+            )
+
+print(f"✅ Bathymetry raster reprojected to UTM: {out_raster}")
+
+
+#%%
 
 # Function to calculate the surface area of the lake above a specified depth
 def calculate_lake_area(bathymetry_tiff, depth_threshold=0):
@@ -39,66 +87,219 @@ def calculate_lake_area(bathymetry_tiff, depth_threshold=0):
         return water_area_km2
 
 # Example usage
-bathymetry_tiff = "C:\DATA\Lake V Bathymentry\LakeVictoria_Bathymetry-Reprojected.tif"
+bathymetry_tiff = r"C:\DATA\Lake V Bathymentry\lake_bathymetry_UTM.tif"
 lake_area = calculate_lake_area(bathymetry_tiff)
 
 print(f"Calculated surface area of Lake Victoria: {lake_area:.2f} km²")
 
 
 
-#%%
-
-
-# Open bathymetry raster
-basin_topography_tiff = "C:\DATA\Processed\Reprojected_Resampled_DEM.tif"
 
 
 
 #%%
-# 1. Load Bathymetry Data
-file_path = "C:\DATA\Lake V Bathymentry\LakeVictoria_Bathymetry-Reprojected.tif"
-with rasterio.open(file_path) as bathy:
-    depth_data = bathy.read(1)  # Read the first band (depth values)
-    transform = bathy.transform
-    pixel_size = transform[0]  # Pixel size in meters (assumes square pixels)
 
-# Replace no-data values with NaN
-depth_data[depth_data == bathy.nodata] = np.nan
+
+def calculate_lake_area(bathymetry_tiff):
+    with rasterio.open(bathymetry_tiff) as src:
+        data = src.read(1)
+        res_x, res_y = src.res
+        pixel_area = res_x * res_y  # in map units (m² if CRS in meters)
+
+        # Mask out only nodata, not depth
+        mask = (data != src.nodata) & (data >= 0)
+
+        lake_pixels = np.sum(mask)
+        lake_area_km2 = (lake_pixels * pixel_area) / 1e6
+        return lake_area_km2
+
+lake_area = calculate_lake_area(bathymetry_tiff)
+print(f"Calculated surface area of Lake Victoria: {lake_area:.2f} km²")
 
 
 #%%
 
-   
-# 1b. Open topography data and merge with bathymetry 
 
+# Start from here
+
+# Open topography raster
+# basin_topography_tiff = "C:\DATA\Processed\Reprojected_Resampled_DEM.tif" (this is reprojected to 500m)
+
+# open the non-reprojected DEM
+basin_topography_tiff = "C:\DATA\Lake Basin Topography\LakeVictoriaBasinDEM.tif"
+bathymetry_tiff = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+
+
+# 1a. Reproject Bathymetry data (500 m) to resolution of Topography data 
+
+# Paths
+bathy_file = bathymetry_tiff
+basin_file = basin_topography_tiff # DEM
+out_file = r"C:\DATA\Lake V Bathymentry\Bathymetry_reprojected_30m_final.tif"
+
+
+
+# Open reference (basin_topography_tiff)
+with rasterio.open(basin_file) as ref:
+    ref_meta = ref.meta.copy()
+    ref_crs = ref.crs
+    ref_transform = ref.transform
+    ref_shape = (ref.height, ref.width)
+    
+
+# Open source (bathy_src)
+with rasterio.open(bathy_file) as src:
+    bathy_data = src.read(1)  # just first band for now
+    dst_data = np.empty(ref_shape, dtype=bathy_data.dtype)
+    src_meta = src.meta.copy()
+  
+
+    # Reproject the bathymetry
+    reproject(
+        source=bathy_data,
+        destination=dst_data,
+        src_transform=src.transform,
+        src_crs=src.crs,
+        dst_transform=ref_transform,
+        dst_crs=ref_crs,
+        resampling=Resampling.bilinear  # or nearest/cubic depending on your data
+    )
+  
+# set all the zeros to nan to remove area outside of lake that has been added by reprojection
+dst_data[dst_data == 0] = np.nan
+
+# Save reprojected raster
+ref_meta.update({
+    "driver": "GTiff",
+    "height": ref_shape[0],
+    "width": ref_shape[1],
+    "transform": ref_transform,
+    "crs": ref_crs,
+    "nodata": -9999,
+    "dtype": "float32",
+    
+})
+
+# save the file 
+with rasterio.open(out_file, "w", **ref_meta) as dst:
+    dst.write(dst_data, 1)
+    
+
+
+#%%
+# Plot to check 
+plot = plt.imshow(test)
+plt.show()
+
+#%%
+# Plot to check 
+plot = plt.imshow(dst_data)
+plt.show()
+
+
+#%%
+# Plot to check 
+plot = plt.imshow(dst_data_filled)
+plt.show()
+
+#%%
+
+
+# Plot to check 
+plot = plt.imshow(bathy_data)
+plt.show()
+
+
+
+
+#%%
+
+# open bathymetry reprojected to 30 m 
+bathymetry_tiff =  r"C:\DATA\Lake V Bathymentry\Bathymetry_reprojected_30m_final.tif"
+
+# 1b. Open topography data (30 m) and merge with bathymetry (30 m)
 
 with rasterio.open(bathymetry_tiff) as bathy_src, rasterio.open(basin_topography_tiff) as topo_src:
     bathymetry_data = bathy_src.read(1)
     topography_data = topo_src.read(1)
+    bathy_crs = bathy_src.crs
+    topo_crs = topo_src.crs
     transform = bathy_src.transform
-    pixel_area = bathy_src.res[0] * bathy_src.res[1]  # Resolution of approximately 500m x 500m (e.g., meters^2) - GEBCO global bathymetry: ~470m (~15 arc-seconds)
+    res =  bathy_src.res[0]
+    pixel_area = bathy_src.res[0] * bathy_src.res[1]  
 
+#%%
 # put together bathymetry and topography data
 # turn zeros in topography (indicate areas outside of basin), to nan
-topography_data[topography_data==0] = 'nan'
+
+# Convert to float (allows NaN)
+topography_data = topography_data.astype(float)
+# Now you can safely replace zeros
+topography_data[topography_data == 0] = np.nan
 print(f'min elevation, {np.nanmin(topography_data)}')
 
 # combine bathymetry and topography data
+
+# set nan to zero
 bath_zeros = np.nan_to_num(bathymetry_data, copy=True,nan=0)
+
+
+#%%
+# subtract one from the other 
 bath_topo = np.subtract(topography_data, bath_zeros)
 
+
+#%%
+
+
+# Plot to check 
+plot = plt.imshow(topography_data)
+plt.show()
+
+
+#%%
+
+plt.imshow(bathymetry_data)
+plt.show()
+
+#%%
+
+# Plot Topography - Bathymetry
+fig, ax = plt.subplots()
+plot = ax.imshow(bath_zeros)
+cbar = fig.colorbar(plot, ax=ax, shrink=0.4)
+ax.set_title(" Bathymetry")
+plt.show()
+
+
+#%%
 # Plot Topography - Bathymetry
 fig, ax = plt.subplots()
 plot = ax.imshow(bath_topo)
 cbar = fig.colorbar(plot, ax=ax, shrink=0.4)
 ax.set_title("Topography - Bathymetry")
+plt.show()
 
 
 #%%
 
+# # add back the geographic metadata to this and save as a tiff 
+
+
+# out_file = r"C:\DATA\Lake V Bathymentry\bathy_topo_final.tif"
+
+# # save the file 
+# with rasterio.open(out_file, "w", **ref_meta) as dst:
+#     dst.write(bath_topo, 1)
+    
+    
+#%%
+
+depth_data = bathymetry_data
+
 
 # 2. Define Depth Bins
-bin_size = .01  # Bin thickness in meters
+bin_size = .1  # Bin thickness in meters
 min_depth = np.nanmin(depth_data)  # Minimum depth
 max_depth = np.nanmax(depth_data)  # Maximum depth
 depth_bins = np.arange(np.floor(min_depth), np.ceil(max_depth) + bin_size, bin_size)
@@ -108,43 +309,43 @@ depth_bins = np.arange(np.floor(min_depth), np.ceil(max_depth) + bin_size, bin_s
 
 
 # 3. Calculate Volumes for different depths
-pixel_area = pixel_size ** 2  # Area of one pixel in square meters
-volumes_at_depth = []
-areas_at_depth = []
 
-for depth in depth_bins:
-    # Mask pixels below the current depth
-    mask = (depth >= (np.nanmax(depth_data) - depth_data) )
-    # get area at current depth
-    area_at_depth = np.nansum(mask) * pixel_area  # Sum of areas at this depth (number of pixels * pixel area) m2
-    # get masked depth
-    masked_depth = np.where(mask, depth_data, np.nan)
-    # calculate volume as sum of depth, maxed out at the depth of water
-    max_depth = np.where(mask, np.minimum(masked_depth, depth), np.nan)
-    volume = np.nansum(max_depth)
-    # save output
-    volumes_at_depth.append(volume)
-    areas_at_depth.append(area_at_depth)
+# Flatten depth data and drop NaNs
+depth_flat = depth_data.ravel()
+depth_flat = depth_flat[~np.isnan(depth_flat)]
 
+# Pixel area in km²
+pixel_area = 900 
 
-#%%
+# Define bins
+bin_size = 0.1
+min_depth = np.floor(np.nanmin(depth_flat))
+max_depth = np.ceil(np.nanmax(depth_flat))
+depth_bins = np.arange(min_depth, max_depth + bin_size, bin_size)
 
-# 4. Plot Depth vs. Volume
-plt.figure(figsize=(10, 6))
-plt.plot( np.array(volumes_at_depth) / 1e6 , depth_bins, marker='o', linestyle='-', color='blue')
-plt.gca().invert_yaxis()  # Depth increases downward
-plt.title("Lake Victoria Depth-Volume Curve")
-plt.xlabel("Volume (km³)")
-plt.ylabel("Depth (m)")
-plt.grid()
-plt.show()
+# Histogram: how many pixels fall into each depth interval
+counts, bin_edges = np.histogram(depth_flat, bins=depth_bins)
+
+# Compute cumulative area
+areas_at_depth = np.cumsum(counts) * pixel_area
+
+# # Compute cumulative volume
+# # Each bin contributes: count * depth_midpoint
+# depth_mid = (bin_edges[:-1] + bin_edges[1:]) / 2
+# volumes_cumulative = np.cumsum(counts * depth_mid) * pixel_area
+
+# THIS IS NOT CORRECT : To fix volume 
+
+# Convert to arrays with depth labels
+areas_at_depth = np.array(areas_at_depth)      # km²
+#volumes_at_depth = np.array(volumes_cumulative)  # km³ if depths are meters
 
 #%%
 
 # 5. Depth vs. area
 
 plt.figure(figsize=(10, 6))
-plt.plot( np.array(areas_at_depth) / 1e6 , depth_bins, marker='o', linestyle='-', color='blue')
+plt.plot( np.array(areas_at_depth) / 1e6  , depth_mid, marker='o', linestyle='-', color='blue')
 plt.gca().invert_yaxis()  # Depth increases downward
 plt.title("Lake Victoria Depth-Area Curve")
 plt.xlabel("Area (km$^2$)")
@@ -152,6 +353,19 @@ plt.ylabel("Depth (m)")
 plt.grid()
 plt.show()
 
+
+
+#%%
+
+# # 4. Plot Depth vs. Volume
+# plt.figure(figsize=(10, 6))
+# plt.plot( np.array(volumes_at_depth) / 1e9 , depth_mid, marker='o', linestyle='-', color='blue')
+# plt.gca().invert_yaxis()  # Depth increases downward
+# plt.title("Lake Victoria Depth-Volume Curve")
+# plt.xlabel("Volume (km³)")
+# plt.ylabel("Depth (m)")
+# plt.grid()
+# plt.show()
 
 
 
@@ -316,15 +530,67 @@ max_index = np.unravel_index(np.nanargmax(bathymetry_data), bathymetry_data.shap
 # Get the corresponding bath_topo value, ie baseline elevation at this point
 bath_topo_at_max_bathy = bath_topo[max_index]
 
+# pixel_size = 30  # meters
+# pixel_area = pixel_size ** 2  # 900 m² per pixel
+
+# def calculate_areas_per_depth_bin(
+#         depth_bins,
+#         bath_topo, # bathymetry and topography together 
+#         bath_topo_at_max_bathy = bath_topo_at_max_bathy,
+#         pixel_area = pixel_size ** 2 # pixel_size has to be defined 
+#         ):
+    
+#     volumes_at_depth = []
+#     areas_at_depth = []
+
+# --------------------------------------------------------------
+# Pixel configuration
+# --------------------------------------------------------------
+pixel_size = 30  # meters
+pixel_area = pixel_size ** 2  # 900 m² per pixel
+
+
 def calculate_areas_per_depth_bin(
         depth_bins,
-        bath_topo, # bathymetry and topography together 
-        bath_topo_at_max_bathy = bath_topo_at_max_bathy,
-        pixel_area = pixel_size ** 2 # pixel_size has to be defined 
-        ):
-    
-    volumes_at_depth = []
-    areas_at_depth = []
+        bath_topo,  # combined bathymetry + topography array
+        bath_topo_at_max_bathy,
+        pixel_area=pixel_area
+    ):
+    """
+    Calculate surface area per depth bin.
+
+    Parameters
+    ----------
+    depth_bins : array-like
+        Depth bin edges (e.g. np.arange(-80, 10, 1))
+    bath_topo : np.ndarray
+        Bathymetry + topography raster (meters)
+    bath_topo_at_max_bathy : np.ndarray
+        Masked bathymetry at maximum lake extent
+    pixel_area : float
+        Area of one raster cell in m² (default = 30m × 30m)
+
+    Returns
+    -------
+    dict
+        Depth bin -> area (m²)
+    """
+
+    area_per_bin = {}
+
+    for i in range(len(depth_bins) - 1):
+        lower = depth_bins[i]
+        upper = depth_bins[i + 1]
+
+        mask = (
+            (bath_topo_at_max_bathy >= lower) &
+            (bath_topo_at_max_bathy < upper)
+        )
+
+        area_per_bin[(lower, upper)] = np.sum(mask) * pixel_area
+
+    return area_per_bin
+
 
     for depth in depth_bins:
         # Mask pixels below the current depth
@@ -454,6 +720,327 @@ def calculate_masks_per_depth_bin(
 
 #%%
 
+
+
+
+
+
+
+
+# -*- coding: utf-8 -*-
+"""
+Lake Victoria Hypsograph Generator
+Creates area-volume-level relationship plot from bathymetry and topography data
+
+Author: V. Ogembo
+Created: December 2025
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import rasterio
+from rasterio.warp import reproject, Resampling
+import seaborn as sns
+
+# ===============================================================
+# CONFIGURATION
+# ===============================================================
+
+# Input files
+BATHYMETRY_FILE = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+TOPOGRAPHY_FILE = r"C:\DATA\Lake Basin Topography\LakeVictoriaBasinDEM.tif"
+
+# Output
+OUTPUT_DIR = r"C:\DATA\Lake V Bathymentry"
+HYPSOGRAPH_CSV = r"C:\Users\VO000003\OneDrive - Vrije Universiteit Brussel\Ogembo_LVictoria_IWBM\lakevic-eea-wbm\input_data\hypsograph\WBM_depth_area_curve.csv"
+
+# Depth bin configuration
+BIN_SIZE = 0.1  # meters
+PIXEL_SIZE = 30  # meters (DEM resolution)
+PIXEL_AREA = PIXEL_SIZE ** 2  # m² per pixel
+
+# Plotting style
+sns.set_style("whitegrid")
+plt.rcParams.update({
+    'figure.dpi': 150,
+    'font.size': 11,
+    'axes.labelsize': 12,
+    'axes.titlesize': 14
+})
+
+# ===============================================================
+# STEP 1: LOAD AND ALIGN DATA
+# ===============================================================
+
+def load_and_align_data(bathy_file, topo_file):
+    """
+    Load bathymetry and topography, reproject bathymetry to match topography
+    """
+    print("Loading and aligning bathymetry and topography...")
+    
+    # Load topography (reference)
+    with rasterio.open(topo_file) as topo_src:
+        topography_data = topo_src.read(1).astype(float)
+        ref_transform = topo_src.transform
+        ref_crs = topo_src.crs
+        ref_shape = topography_data.shape
+        pixel_size = topo_src.res[0]
+    
+    # Load and reproject bathymetry
+    with rasterio.open(bathy_file) as bathy_src:
+        bathy_data = bathy_src.read(1)
+        
+        # Create empty array for reprojected data
+        bathy_reprojected = np.empty(ref_shape, dtype=float)
+        
+        # Reproject bathymetry to match topography
+        reproject(
+            source=bathy_data,
+            destination=bathy_reprojected,
+            src_transform=bathy_src.transform,
+            src_crs=bathy_src.crs,
+            dst_transform=ref_transform,
+            dst_crs=ref_crs,
+            resampling=Resampling.bilinear
+        )
+    
+    # Clean data
+    bathy_reprojected[bathy_reprojected == 0] = np.nan  # Remove areas outside lake
+    topography_data[topography_data == 0] = np.nan  # Remove areas outside basin
+    
+    print(f"✓ Data loaded and aligned")
+    print(f"  Grid size: {ref_shape}")
+    print(f"  Pixel size: {pixel_size} m")
+    
+    return bathy_reprojected, topography_data, pixel_size
+
+
+# ===============================================================
+# STEP 2: MERGE BATHYMETRY AND TOPOGRAPHY
+# ===============================================================
+
+def merge_bathy_topo(bathymetry, topography):
+    """
+    Combine bathymetry (negative depths) and topography (elevations)
+    into a single elevation surface
+    """
+    print("\nMerging bathymetry and topography...")
+    
+    # Convert bathymetry NaN to 0 for subtraction
+    bathy_zeros = np.nan_to_num(bathymetry, nan=0)
+    
+    # Subtract bathymetry from topography
+    # (topography is elevation above sea level, bathymetry is depth below lake surface)
+    combined = topography - bathy_zeros
+    
+    # Find the baseline elevation (deepest point)
+    max_bathy_idx = np.unravel_index(np.nanargmax(bathymetry), bathymetry.shape)
+    baseline_elevation = combined[max_bathy_idx]
+    
+    print(f"✓ Data merged")
+    print(f"  Deepest point: {bathymetry[max_bathy_idx]:.2f} m depth")
+    print(f"  Baseline elevation: {baseline_elevation:.2f} m a.s.l.")
+    
+    return combined, baseline_elevation
+
+
+# ===============================================================
+# STEP 3: CALCULATE HYPSOGRAPH
+# ===============================================================
+
+def calculate_hypsograph(combined_elevation, baseline_elev, bin_size, pixel_area):
+    """
+    Calculate area and volume for each depth/elevation bin
+    """
+    print("\nCalculating hypsographic curve...")
+    
+    # Define depth bins relative to baseline
+    max_depth = np.nanmax(combined_elevation - baseline_elev)
+    min_depth = np.nanmin(combined_elevation - baseline_elev)
+    
+    depth_bins = np.arange(np.floor(min_depth), np.ceil(max_depth) + bin_size, bin_size)
+    
+    areas = []
+    volumes = []
+    
+    for depth in depth_bins:
+        # Mask all pixels below this water level
+        mask = (combined_elevation <= baseline_elev + depth)
+        
+        # Calculate area
+        area = np.nansum(mask) * pixel_area  # m²
+        
+        # Calculate volume
+        # For each pixel, depth is limited by either actual depth or water level
+        pixel_depths = np.where(
+            mask,
+            np.minimum(combined_elevation - baseline_elev, depth),
+            np.nan
+        )
+        volume = np.nansum(pixel_depths) * pixel_area  # m³
+        
+        areas.append(area)
+        volumes.append(volume)
+    
+    # Create DataFrame
+    df = pd.DataFrame({
+        'depth_m': depth_bins,
+        'area_m2': areas,
+        'vol_m3': volumes
+    })
+    
+    # Add lake levels (elevation a.s.l.)
+    df['level_masl'] = df['depth_m'] + baseline_elev
+    
+    print(f"✓ Hypsograph calculated")
+    print(f"  Depth range: {min_depth:.2f} to {max_depth:.2f} m")
+    print(f"  Level range: {df['level_masl'].min():.2f} to {df['level_masl'].max():.2f} m a.s.l.")
+    
+    return df
+
+
+# ===============================================================
+# STEP 4: PLOT HYPSOGRAPH
+# ===============================================================
+
+def plot_hypsograph(df, savepath=None):
+    """
+    Create publication-quality hypsograph plot
+    Lake Level (x) vs Area (left y) and Volume (right y)
+    """
+    print("\nCreating hypsograph plot...")
+    
+    fig, ax1 = plt.subplots(figsize=(12, 7))
+    
+    # Plot Lake Area (Left Y-Axis)
+    color_area = '#1976D2'  # Blue
+    ax1.plot(df['level_masl'], df['area_m2'] / 1e6, 
+            color=color_area, linewidth=2.5, label='Lake Area')
+    ax1.set_xlabel('Lake Level (m a.s.l.)', fontsize=13, fontweight='bold')
+    ax1.set_ylabel('Lake Area (km²)', fontsize=13, fontweight='bold', color=color_area)
+    ax1.tick_params(axis='y', labelcolor=color_area, labelsize=11)
+    ax1.grid(True, linestyle='--', alpha=0.5)
+    
+    # Set x-axis ticks at 10m intervals
+    level_min = np.floor(df['level_masl'].min() / 10) * 10
+    level_max = np.ceil(df['level_masl'].max() / 10) * 10
+    tick_intervals = np.arange(level_min, level_max + 10, 10)
+    ax1.set_xticks(tick_intervals)
+    
+    # Plot Lake Volume (Right Y-Axis)
+    ax2 = ax1.twinx()
+    color_volume = '#D32F2F'  # Red
+    ax2.plot(df['level_masl'], df['vol_m3'] / 1e9, 
+            color=color_volume, linewidth=2.5, label='Lake Volume')
+    ax2.set_ylabel('Lake Volume (km³)', fontsize=13, fontweight='bold', color=color_volume)
+    ax2.tick_params(axis='y', labelcolor=color_volume, labelsize=11)
+    
+    # Add title
+    plt.title('Lake Victoria Hypsographic Curve\nArea and Volume vs. Lake Level', 
+             fontsize=15, fontweight='bold', pad=20)
+    
+    # Add legends
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, 
+              loc='upper left', fontsize=11, frameon=True, shadow=True)
+    
+    plt.tight_layout()
+    
+    if savepath:
+        plt.savefig(savepath, dpi=300, bbox_inches='tight')
+        print(f"✓ Saved plot: {savepath}")
+    
+    plt.show()
+    
+    return fig
+
+
+# ===============================================================
+# STEP 5: SAVE HYPSOGRAPH DATA
+# ===============================================================
+
+def save_hypsograph_csv(df, filepath):
+    """
+    Save hypsograph data to CSV for use in water balance model
+    """
+    # Select relevant columns for model
+    df_output = df[['depth_m', 'area_m2', 'vol_m3']].copy()
+    df_output = df_output.set_index('depth_m')
+    
+    df_output.to_csv(filepath)
+    print(f"\n✓ Saved hypsograph CSV: {filepath}")
+    
+    # Print summary statistics
+    print("\nHypsograph Summary:")
+    print(f"  At depth 0 m:")
+    print(f"    Area: {df_output.iloc[0]['area_m2']/1e6:.1f} km²")
+    print(f"    Volume: {df_output.iloc[0]['vol_m3']/1e9:.1f} km³")
+    
+    max_idx = df_output.index.max()
+    print(f"  At maximum depth ({max_idx:.1f} m):")
+    print(f"    Area: {df_output.loc[max_idx]['area_m2']/1e6:.1f} km²")
+    print(f"    Volume: {df_output.loc[max_idx]['vol_m3']/1e9:.1f} km³")
+
+
+# ===============================================================
+# MAIN EXECUTION
+# ===============================================================
+
+def main():
+    """
+    Main execution function
+    """
+    print("="*70)
+    print("LAKE VICTORIA HYPSOGRAPH GENERATOR")
+    print("="*70)
+    
+    # Step 1: Load and align data
+    bathymetry, topography, pixel_size = load_and_align_data(
+        BATHYMETRY_FILE, 
+        TOPOGRAPHY_FILE
+    )
+    
+    # Step 2: Merge bathymetry and topography
+    combined, baseline = merge_bathy_topo(bathymetry, topography)
+    
+    # Step 3: Calculate hypsograph
+    pixel_area = pixel_size ** 2
+    df_hypsograph = calculate_hypsograph(
+        combined, 
+        baseline, 
+        BIN_SIZE, 
+        pixel_area
+    )
+    
+    # Step 4: Plot hypsograph
+    plot_path = OUTPUT_DIR + r"\Lake_Victoria_Hypsograph.png"
+    plot_hypsograph(df_hypsograph, plot_path)
+    
+    # Step 5: Save CSV
+    save_hypsograph_csv(df_hypsograph, HYPSOGRAPH_CSV)
+    
+    print("\n" + "="*70)
+    print("✅ HYPSOGRAPH GENERATION COMPLETE")
+    print("="*70)
+    
+    return df_hypsograph
+
+
+if __name__ == "__main__":
+    df = main()
+
+
+
+
+
+
+
+
+
+
+#%%
 # Test
 
 lakearea_masks_da = calculate_masks_per_depth_bin(
@@ -740,36 +1327,4 @@ with rasterio.open(output_file) as src:
 
 
 
-#%%
 
-
-
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
-
-# Load CSV file
-file_path = r"C:\DATA\Lake Area Mask\hypsograph_depth_area.csv"
-data = pd.read_csv(file_path)
-
-# Inspect the first few rows to check column names
-print(data.head())
-
-# Assuming the CSV has columns named 'Elevation_m' and 'Lake_Area_km2'
-x = data['Elevation_m']   # Elevation in meters above sea level
-y = data['Lake_Area_km2'] # Lake area in km² (adjust column name if different)
-
-# Define x-axis ticks at 10m intervals
-x_min, x_max = x.min(), x.max()
-x_ticks = np.arange(1050, 1150 + 10, 10)
-
-# Plot
-plt.figure(figsize=(10,6))
-plt.plot(x, y, marker='o', linestyle='-', linewidth=1.0)  # Line thickness
-plt.xlabel('Lake Level Elevation (m a.s.l)', fontsize=14)
-plt.ylabel('Lake Area (km²)', fontsize=14)
-plt.title('Hypsography of Lake Victoria: Area vs Water Depth Elevation', fontsize=18)
-plt.xticks(x_ticks)  # Apply 10m interval
-plt.grid(True)
-plt.tight_layout()
-plt.show()

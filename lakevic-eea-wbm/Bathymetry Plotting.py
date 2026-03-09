@@ -16,7 +16,7 @@ import numpy as np
 import os
 
 # === File paths ===
-bathymetry_tif = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+bathymetry_tif = r"C:\DATA\Lake V Bathymentry\Bathymetry_reprojected_30m_UTM_final.tif"
 dem_tif = r"C:\DATA\Lake Basin Topography\LakeVictoriaBasinDEM.tif"
 output_merged_tif = r"C:\DATA\Lake V Bathymentry\Merged_Elevation_30m.tif"
 
@@ -61,11 +61,17 @@ dem_meta.update({
     "nodata": -9999
 })
 
-with rasterio.open(output_merged_tif, 'w', **dem_meta) as dst:
-    dst.write(merged_elevation, 1)
+#with rasterio.open(output_merged_tif, 'w', **dem_meta) as dst:
+#    dst.write(merged_elevation, 1)
 
 print(f"Merged elevation raster saved to: {output_merged_tif}")
 
+
+#%% 
+
+# Check the merged DEM-Bathymetry 
+
+merged_elevation.plot()
 
 
 #%%
@@ -78,7 +84,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 # Path to your bathymetry GeoTIFF file
-tif_file = "C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+tif_file = "C:\DATA\Lake V Bathymentry\lake_bathymetry.tif"
 
 # Open the GeoTIFF file
 with rasterio.open(tif_file) as src:
@@ -131,7 +137,7 @@ from rasterio.sample import sample_gen
 from shapely.geometry import LineString
 
 # Path to your bathymetry GeoTIFF file
-tif_file = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+tif_file = r"C:\DATA\Lake V Bathymentry\lake_bathymetry.tif"
 
 # Define the cross-section line (coordinates in the same CRS as the raster)
 start_point = (31.6, -0.98)  # Example start point (Longitude, Latitude)
@@ -183,7 +189,7 @@ from rasterio.sample import sample_gen
 from shapely.geometry import LineString
 
 # Paths to the bathymetry and topography GeoTIFF files
-tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\lake_bathymetry.tif"
 tif_file_topography = r"C:\DATA\Lake Basin Topography\LakeVictoria_Topography.tif"
 
 # Define the cross-section line (coordinates in the same CRS as the rasters)
@@ -244,7 +250,7 @@ import matplotlib.pyplot as plt
 from rasterio.sample import sample_gen
 
 # Paths to the bathymetry and topography GeoTIFF files
-tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\lake_bathymetry.tif"
 tif_file_topography = r"C:\DATA\Lake Basin Topography\LakeVictoriaBasinDEM.tif"
 
 # Define the cross-section line (coordinates in the same CRS as the rasters)
@@ -328,7 +334,7 @@ import matplotlib.pyplot as plt
 from rasterio.sample import sample_gen
 
 # Paths to the bathymetry and topography GeoTIFF files
-tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\lake_bathymetry.tif"
 tif_file_topography = r"C:\DATA\Lake Basin Topography\LakeVictoriaBasinDEM.tif"
 
 # Define the cross-section line (coordinates in the same CRS as the rasters)
@@ -414,7 +420,7 @@ from rasterio.warp import transform
 from shapely.geometry import LineString
 
 # Paths to the bathymetry and topography GeoTIFF files
-tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\lake_bathymetry.tif"
 tif_file_topography = r"C:\DATA\Lake Basin Topography\LakeVictoriaBasinDEM.tif"
 
 # Define the cross-section line (coordinates in the same CRS as the rasters)
@@ -505,7 +511,7 @@ from rasterio.enums import Resampling
 from rasterio.warp import reproject
 
 # Paths to the bathymetry and topography GeoTIFF files
-tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\lake_bathymetry.tif"
 tif_file_topography = r"C:\DATA\Lake Basin Topography\LakeVictoriaBasinDEM.tif"
 
 # Define lake surface elevations and corresponding dates
@@ -650,7 +656,7 @@ import matplotlib.pyplot as plt
 from rasterio.warp import reproject, Resampling
 
 # Paths to the bathymetry and topography GeoTIFF files
-tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
+tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\lake_bathymetry.tif"
 tif_file_topography = r"C:\DATA\Lake Basin Topography\LakeVictoriaBasinDEM.tif"
 
 # Read the raster data

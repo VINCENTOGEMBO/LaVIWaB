@@ -15,13 +15,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pyproj import Transformer
 from scipy.interpolate import interp1d
+from rasterio.warp import reproject, Resampling
 
 #%%
 # Load daily lake levels
 lake_levels_df = pd.read_csv("C:\DATA\Lake_levels\Lake_Victoria_level_Jun2024.csv")  # Ensure columns: 'date', 'lake_level'
 
 # Open bathymetry raster
-bathymetry_tiff = "C:\DATA\Lake V Bathymentry\LakeVictoria_Bathymetry-Reprojected.tif"
+bathymetry_tiff = "C:\DATA\Lake V Bathymentry\lake_bathymetry_UTM.tif"
 basin_topography_tiff = "C:\DATA\Processed\Reprojected_Resampled_DEM.tif"
 
 #%%
@@ -29,7 +30,61 @@ with rasterio.open(bathymetry_tiff) as bathy_src, rasterio.open(basin_topography
     bathymetry_data = bathy_src.read(1)
     topography_data = topo_src.read(1)
     transform = bathy_src.transform
-    pixel_area = bathy_src.res[0] * bathy_src.res[1]  # Resolution of approximately 500m x 500m (e.g., meters^2) - GEBCO global bathymetry: ~470m (~15 arc-seconds)
+    pixel_area = bathy_src.res[0] * bathy_src.res[1]  # Resolution of approximately 30m x 30m (e.g., meters^2) - GEBCO global bathymetry: ~470m (~15 arc-seconds) but interpolated
+
+
+
+# Open topography (reference raster)
+with rasterio.open(basin_topography_tiff) as topo_src:
+    topography_data = topo_src.read(1)
+    topo_meta = topo_src.meta.copy()
+
+# Open bathymetry and reproject to match topography
+with rasterio.open(bathymetry_tiff) as bathy_src:
+    bathy_meta = bathy_src.meta.copy()
+
+    # Create empty array with shape of topography
+    bathymetry_resampled = np.empty((topo_src.height, topo_src.width), dtype=np.float32)
+
+    reproject(
+        source=rasterio.band(bathy_src, 1),
+        destination=bathymetry_resampled,
+        src_transform=bathy_src.transform,
+        src_crs=bathy_src.crs,
+        dst_transform=topo_src.transform,
+        dst_crs=topo_src.crs,
+        resampling=Resampling.bilinear
+    )
+
+# ✅ Now both arrays match in shape
+print("Topography shape:", topography_data.shape)
+print("Bathymetry resampled shape:", bathymetry_resampled.shape)
+
+# Replace 0 values in topo with NaN
+topography_data[topography_data == 0] = np.nan
+
+# Combine bathy + topo
+bath_zeros = np.nan_to_num(bathymetry_resampled, copy=True, nan=0)
+bath_topo = topography_data - bath_zeros
+
+# Save the resampled bathymetry to GeoTIFF
+output_tif = r"C:\DATA\Lake V Bathymentry\bathy_topo_resumpled_reprojected_30m.tif"
+
+# Use topo metadata as reference
+out_meta = topo_meta.copy()
+out_meta.update({
+    "driver": "GTiff",
+    "height": topography_data.shape[0],
+    "width": topography_data.shape[1],
+    "transform": topo_meta["transform"],
+    "crs": topo_meta["crs"],
+    "dtype": "float32"
+})
+
+with rasterio.open(output_tif, "w", **out_meta) as dest:
+    dest.write(bathymetry_resampled.astype(np.float32), 1)
+
+print(f"✅ Resampled bathymetry saved to: {output_tif}")
 
 #%%
 # plot bathymetry and topography data
@@ -47,13 +102,23 @@ fig.colorbar(plt2, ax=ax)
 
 # put together bathymetry and topography data
 
-# turn zeros in topography (outside of basin), to nan
-topography_data[topography_data==0] = 'nan'
 
-min_elevation = np.nanmin(topography_data)
 
-# combine bathymetry and topography data
-bath_zeros = np.nan_to_num(bathymetry_data, copy=True,nan=0)
+# Prepare an array to hold bathymetry resampled to topo resolution
+bathymetry_resampled = np.empty_like(topography_data, dtype=np.float32)
+
+reproject(
+    source=bathymetry_data,
+    destination=bathymetry_resampled,
+    src_transform=bathy_src.transform,
+    src_crs=bathy_src.crs,
+    dst_transform=topo_src.transform,
+    dst_crs=topo_src.crs,
+    resampling=Resampling.bilinear
+)
+
+# Now bathymetry_resampled has same shape as topography_data
+bath_zeros = np.nan_to_num(bathymetry_resampled, copy=True, nan=0.0)
 bath_topo = np.subtract(topography_data, bath_zeros)
 
 # test smaller area
@@ -123,7 +188,7 @@ for index, row in lake_levels_df.iterrows():
 
 # Save results to CSV
 results_df = pd.DataFrame(results)
-results_df.to_csv("lake_extent_daily_new.csv", index=False)
+results_df.to_csv("C:\DATA\Lake Extent csv 1993-2023\lake_extent_daily_new.csv", index=False)
 
 print("Lake extent analysis saved to 'lake_extent_daily.csv'")
 
@@ -535,4 +600,7 @@ plt.tight_layout()
 # Show the plots
 plt.show()
 
+#%%
+
+# HARMONISED PROCESS      TEST TEST TEST TEST
 

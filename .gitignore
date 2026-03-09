@@ -9,3 +9,6 @@ figures/*
 *.jpg
 *__pycache__*
 *.ipynb_checkpoints
+output/*
+*.csv
+*.xlsx

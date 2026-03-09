@@ -13,6 +13,8 @@ WBM "namelist" for user control:
     - re-run with new PERSIANN file 
 """
 
+#%%
+
 import pandas as pd
 import sys, os , glob
 
@@ -37,7 +39,7 @@ run_n = 2
 #== FLAGS:RUN ====#
 #=================#
 
-run_type = 0
+run_type = 1
                 # 0: OBS
                 # 1: MODEL ISIMIP3b
                 # 2: ISIMIP3a obsclim and counterclim
@@ -52,16 +54,23 @@ if run_type == 0: # IF OBS
                 # 1: Agreed curve, calculated at each timestep (standard for model run) --> MAKE THIS FLAG !! 
                 
 if run_type == 1: # IF MODEL
-    flag_model_scenario = 1
+    flag_model_scenario = 0
                 # 0: HIST
                 # 1: HIST-NAT
-    flag_model_precip = 5
+                # 2: PROJ - SSP126
+                # 3: SSP370
+    flag_model_precip = 0
                 # 0: CanESM5
                 # 1: CNRM-CM6-1
                 # 2: GFDL-ESM4
                 # 3: IPSL-CM6A-LR
                 # 4: MIROC6
                 # 5: MRI-ESM2-0
+    flag_evap_climatology = 0 
+                # 0 : repeat one year from Wim output
+                # 1 : use modelled time-varying values 
+
+
 
 if run_type == 2: # IF ISIMIP3a
     flag_scenario = 1                           # OLD: flag_model_scenario
@@ -119,7 +128,7 @@ if run_type == 0 :
 # ISIMIP3b
 if run_type == 1: 
     startYEAR = 1850
-    endYEAR =   2023 
+    endYEAR =   2020 # 2100 - TOCHANGE WHEN DATA REMAPPED
 
 # ISIMIP3a 
 if run_type == 2: 
@@ -141,11 +150,11 @@ if run_type == 0:
     
 # MODEL: set GCM and scenario name 
 if run_type == 1:
-    GCM_list = ['20CRv3-ERA5','CNRM-CM6-1','GFDL-ESM4','IPSL-CM6A-LR','MIROC6','MRI-ESM2-0']
+    GCM_list = ['CanESM5', 'CNRM-CM6-1','GFDL-ESM4','IPSL-CM6A-LR','MIROC6','MRI-ESM2-0'] #'20CRv3-ERA5',
     GCM_select = GCM_list[flag_model_precip]
     scenario_list = ['hist', 'hist-nat']
     scenario_select = scenario_list[flag_model_scenario]
-    scenario_dir_list = ['hist-rcp70', 'hist-nat']
+    scenario_dir_list = ['hist-rcp70', 'hist-nat'] # add ssp126, ssp345 
     scenario_dir_select = scenario_dir_list[flag_model_scenario]
     PRECIP_data = scenario_select + ' ' + GCM_select
     run_name = 'ISIMIP3b_' + scenario_select + '_' + GCM_select
@@ -167,6 +176,7 @@ if run_type == 2:
 fig_n = 1
 
 
+#%%
 #====================================#
 #== SET DIRECTORIES SPECIFIC TO RUN =#
 #====================================#
@@ -188,6 +198,7 @@ if run_where == 1:
     if run_type == 2:
         in_path_precip = os.path.join(inDIR, 'ISIMIP3a', scenario_dir_select, data_select)
         
+        #%%
 # SPECIFIC OUTPUT PATHS      
 # =================================#  
 if run_type == 0: #OBS
@@ -253,7 +264,7 @@ filepath_lakelevels_hist = os.path.join(WBM_path,'input_data', 'lakelevels', 'La
 # LAKE AREA AND LAKE VOLUME 
 WBM_path = "C:/users/vo000003/OneDrive - Vrije Universiteit Brussel/Ogembo_LVictoria_IWBM/lakevic-eea-wbm"
 filepath_depth_area=os.path.join(WBM_path, 'input_data/hypsograph/WBM_depth_area_curve.csv')
-
+#filepath_depth_area=os.path.join(WBM_path, 'input_data/hypsograph/WBM_depth_area_curve_v0210.csv')
 
 # Computed Lake Area (Processed from Lake water occurence Pekel data, lake levels, bathymetry and topography)
 #filepath_lake_area = os.path.join(WBM_path,'input_data', 'lakearea', 'lake_area_1948_2023') #Path to the file
@@ -278,7 +289,7 @@ if run_where == 0: # LOCAL
             filename_precip = 'mswep_pr_owngrid_1979_2017.nc'
         filepath_precip = os.path.join(in_path_precip, filename_precip)
     if run_type == 1: # ISIMIP3b
-        filepath_precip = glob.glob(in_path_precip + '/*.nc')[0]
+        filepath_precip = glob.glob(in_path_precip + f'/*_{startYEAR}_{endYEAR}.nc')[0]
 
 if run_where == 1: # HPC
      if run_type == 0:

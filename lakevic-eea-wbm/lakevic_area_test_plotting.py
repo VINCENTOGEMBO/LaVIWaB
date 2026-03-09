@@ -74,4 +74,4 @@ df_monthly = (
 df_monthly.plot(x='Date', y='Area_km2')
 #df_monthly.to_csv('lakevic_area_wuetal_2023_digitized_cleaned_monthly.csv', index=False)
 
-# %%
+
