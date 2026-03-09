@@ -1,10 +1,5 @@
 # Hydroclimatic Modelling of Lake Victoria using LaVIWaB Model
 
-[![DOI](https://zenodo.org/badge/676547448.svg)](https://zenodo.org/doi/10.5281/zenodo.10794481)
-
-
-This repository contains the water balance model and analysis scripts used in [**Pietroiusti et al. 2024 "Possible role of anthropogenic climate change in the record-breaking 2020 Lake Victoria levels and floods"**](https://esd.copernicus.org/articles/15/225/2024/) (Earth System Dynamics)
-
 The water balance model `lakevic-eea-wbm` simulates lake levels for Lake Victoria based on the following inputs: precipitation, evaporation, outflow and soil types and land cover in the basin. 
 
 The analysis scripts in `lakevic-eea-analysis` reproduce all results in the paper including analysing the main drivers of the high 2020 lake levels and applying a probabilistic extreme event attribution methodology to estimate the role of anthropogenic climate change in the event. 
