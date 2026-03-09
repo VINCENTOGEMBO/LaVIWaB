@@ -31,6 +31,5 @@ For ease of reproducibility, all data necessary to run the WBM, except for preci
 2. Information on soil classes and land cover `input_data/CN` from  [JRC](https://publications.jrc.ec.europa.eu/repository/handle/JRC24914)
 3. basin and lake shapefiles `input_data/shapefiles` from [Harvard dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/PWFW26)
 4. Outflow `input_data/outflow` which is a combination of data from [Pietroiusti et al. 2024, ESD](https://esd.copernicus.org/articles/15/225/2024/) and new in situ data.
-
-
-
+5. Lake level data were sourced from the DAHITI database (https://dahiti.dgfi.tum.de/en/2/water-level-altimetry/) and WMO Hydromet archives (https://wmo.int/resources/storymaps)
+6. Bathymetric data were obtained from GEBCO (https://www.gebco.net/data-products/gridded-bathymetry-data/gebco2023-grid). 
