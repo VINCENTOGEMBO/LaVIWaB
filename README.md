@@ -1,13 +1,11 @@
-# Hydroclimatic Modelling of Lake Victoria using LaVIWaB Model
+# Hydroclimatic Modelling of Lake Victoria using Lake Victoria Integrated Water Balance (LaVIWaB) Model
 
-The water balance model `lakevic-eea-wbm` simulates lake levels for Lake Victoria based on the following inputs: precipitation, evaporation, outflow and soil types and land cover in the basin. 
+The LaVIWaB model `lakevic-eea-wbm` simulates lake levels and lake area for Lake Victoria based on the following inputs: precipitation, evaporation, outflow and soil types and land cover in the basin. 
 
-The analysis scripts in `lakevic-eea-analysis` reproduce all results in the paper including analysing the main drivers of the high 2020 lake levels and applying a probabilistic extreme event attribution methodology to estimate the role of anthropogenic climate change in the event. 
+The analysis scripts in `lakevic-eea-analysis` reproduce all results
 
-<img src=/lakevic-eea-wbm/input_data/shapefiles/fig01.png alt="drawing" width="400" ALIGN=”center” />
-Figure source: Vanderkelen et al. 2018
 
-## Water balance model
+## The LaVIWaB model
 
 `lakevic-eea-wbm` contains the water balance model used in the study, it simulates daily lake levels for Lake Victoria.
 
@@ -21,7 +19,7 @@ The model takes as inputs:
     - observational run: semi-observational outflow `input_data/outflow` 
     - attribution runs: calculated by the model using the Agreed Curve.
 
-The model is based on the MATLAB version from [Vanderkelen et al. 2018, HESS, "Modelling the water balance of Lake Victoria"](https://hess.copernicus.org/articles/22/5509/2018/).
+The model is based on the Python version from [Pietroiusti et al. 2024, ESD, "Possible role of anthropogenic climate change in the record-breaking 2020 Lake Victoria levels and floods"](https://esd.copernicus.org/articles/15/225/2024/).
 
 
 ## Data for water balance model 
