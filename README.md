@@ -1,4 +1,4 @@
-# Extreme event attribution of 2020 Lake Victoria floods
+# Hydroclimatic Modelling of Lake Victoria using LaVIWaB Model
 
 [![DOI](https://zenodo.org/badge/676547448.svg)](https://zenodo.org/doi/10.5281/zenodo.10794481)
 
