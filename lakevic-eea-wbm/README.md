@@ -1,1 +1,9 @@
-# lakevic-eea-wbmExtreme event attribution study of 2020 Lake Victoria floods (submited)lakevic-eea-wbm is the water balance model component of the analysis## How to run the water balance model:1. clone the repo (only lakevic-eea-wbm is interesting to you)2. make your changes and settings in WBM_settings.py3. run the model with the main script WBM_model.py
+# lakevic-eea-wbm
+Hydroclimatic Modelling of Lake Victoria
+
+lakevic-eea-wbm is the water balance model component of the analysis
+
+## How to run the water balance model:
+1. clone the repo (only lakevic-eea-wbm is interesting to you)
+2. make your changes and settings in WBM_settings.py
+3. run the model with the main script WBM_model.py
