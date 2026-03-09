@@ -22,43 +22,15 @@ The model takes as inputs:
 The model is based on the Python version from [Pietroiusti et al. 2024, ESD, "Possible role of anthropogenic climate change in the record-breaking 2020 Lake Victoria levels and floods"](https://esd.copernicus.org/articles/15/225/2024/).
 
 
-## Data for water balance model 
+## Data for the LaVIWaB model 
 
 For ease of reproducibility, all data necessary to run the WBM, except for precipitation data, are provided in this GitHub repository.  
 
 `lakevic-eea-wbm/input-data/` and `lakevic-eea-wbm/modified_data` contain:
-1. Evaporation data `input_data/evap` from [Vanderkelen et al. 2018](https://hess.copernicus.org/articles/22/5509/2018/), originally from [Thiery et al. 2015](https://journals.ametsoc.org/view/journals/clim/28/10/jcli-d-14-00565.1.xml)
-2. Information on soil classes and land cover `input_data/CN` from [Vanderkelen et al. 2018](https://hess.copernicus.org/articles/22/5509/2018/), originally from [JRC](https://publications.jrc.ec.europa.eu/repository/handle/JRC24914) and [Dewitte et al. 2013](https://www.sciencedirect.com/science/article/abs/pii/S0016706113002401?via%3Dihub) 
-3. basin and lake shapefiles `input_data/shapefiles` from [Vanderkelen et al. 2018](https://hess.copernicus.org/articles/22/5509/2018/) and [Harvard dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/PWFW26)
-4. Outflow `input_data/outflow` which is a combination of data from [Vanderkelen et al. 2018](https://hess.copernicus.org/articles/22/5509/2018/) and new in situ data.
+1. Evaporation data `input_data/evap` from [Pietroiusti et al. 2024, ESD](https://esd.copernicus.org/articles/15/225/2024/)
+2. Information on soil classes and land cover `input_data/CN` from  [JRC](https://publications.jrc.ec.europa.eu/repository/handle/JRC24914)
+3. basin and lake shapefiles `input_data/shapefiles` from [Harvard dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/PWFW26)
+4. Outflow `input_data/outflow` which is a combination of data from [Pietroiusti et al. 2024, ESD](https://esd.copernicus.org/articles/15/225/2024/) and new in situ data.
 
-## Extreme event analysis
 
-`lakevic-eea-analysis` contains the analysis scripts used in the attribution study. 
-
-Scripts are divided into sections which correspond to the different sections of the analysis in the paper: 
-
-0. preprocessing
-1. analysis of observational precipitation data
-2. lake levels analysis and interpolation
-3. event definition
-4. evaluation of the WBM
-5. analysis of WB drivers
-6. GCM evaluation
-7. statistical fits for attribution and synthesis
-
-## Data availability
-
-All data necessary to reproduce analyses are archived on Zenodo ([here](https://zenodo.org/record/8233523), DOI: 10.5281/zenodo.8229505).
-
-For ease of reproducibility, data necessary to run the water balance model is also provided in this repo. 
-
-## Version
-Version November 2023
-
-## Author
-Rosa Pietroiusti
-
-## References  
-Pietroiusti, R., Vanderkelen, I., Otto, F. E. L., Barnes, C., Temple, L., Akurut, M., Bally, P., van Lipzig, N. P. M., and Thiery, W.: Possible role of anthropogenic climate change in the record-breaking 2020 Lake Victoria levels and floods, EGUsphere [preprint], https://doi.org/10.5194/egusphere-2023-1827, 2023. 
 
