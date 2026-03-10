@@ -714,17 +714,7 @@ gc.collect()
     
 
 print('...converting units of runoff Q_map')
-# -------------------------------------------------------
-# 8) Convert Q in mm/day per grid cell in basin to lake level equivalent m/day
-        # kg m-2 day-1 (Q_map) * m2 (A_cell) = kg day-1
-        # kg day-1 * 0.001 m3 kg-1 water = m3 / day (Q_map_m3) per grid cell
-        # Masked over basin only, removing lake and outside of basin
-        # Sum over all basin cells (nansum) = total m3 entering lake/day
-        # Divide by lake area m2 = m lake level eq.
-        
-                # note.check alternate possibilities for A_lake
-                # note. made this more compact for code running better
-# -------------------------------------------------------
+
 Q_map_masked_m3 = Q_map * inigeom.A_cell \
     * 1e-3 \
     * np.flipud(rmask_basin.values)                      
@@ -825,11 +815,6 @@ else:
 #== EXTRA: COMPARE LAKE AREA ESTIMATES ====# 
 #==========================================#
 
-# Compare different A_lake estimates, this will affect Qin and Qout and differences in estimates suggest differences in how masking has been done
-# See which one works best... Feed it two masked files so it can count the number of unmasked pixels and multiply by pixel area 
-
-# compare_lake_areas(evap_lake[0], precip_lake[0]) # see function file to get information on different estimates and sources
-
 
 #%% Calc LL
 print('...calculating lake levels')
@@ -857,9 +842,7 @@ for t in range(1,len(DATEs)):
         # observational run, observational outflow  
         print('observed outflow being used to calculate lake levels')
         L_wb[t] = L_wb[t-1] - Qout_wb.values[t] + Qin_wb[t] - E_wb[t] + P_wb.values[t] # --> make these dtypes consistent 
-    
-    # For the test with the old NaN data
-    # L_wb[t] = L_wb[t-1] - Qout_wb.values[t] + Qin_wb[t] - E_wb[t] + np.nan_to_num(P_wb.values)[t]
+ 
 
     else: 
         # Apply agreed curve formula each day to calculate Qout
@@ -874,9 +857,7 @@ for t in range(1,len(DATEs)):
             Qout_wb[t-1] = Qout_wb[t]
         
         L_wb[t] = L_wb[t-1] - Qout_wb[t] + Qin_wb[t] - E_wb[t] + P_wb.values[t] # --> make these dtypes consistent 
-         
-        # V[t] = V[t-1] - Qout_wb[t] + Qin_wb[t] - E_wb[t] + P_wb.values[t] # make sure everything is in m3
-        # from hypsograph read A and L as functions of V 
+
     
 print('...done !')
 
@@ -968,22 +949,6 @@ plt.legend()
 plt.title('{} \n v0{}r0{}, DeltaL = {:.03f} m ({:.3f} m/yr)'.format(run_name, ver_n, run_n, (L_wb[len(DATEs)-1] - L_wb[0]), (L_wb[len(DATEs)-1] - L_wb[0]) /(endYEAR - startYEAR +1) ))
 if flag_savefig == 1:
     plt.savefig(os.path.join(fig_path,'LL_obs_{}_{}_{}_v0{}r0{}_dates.png'.format(run_name, startYEAR, endYEAR, ver_n, run_n)),dpi=300)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1140,20 +1105,12 @@ ax.set_ylabel('Lake Area (km²)', fontsize=14)
 ax.tick_params(axis='both', labelsize=12)
 ax.legend(loc='upper right', fontsize=12)
 
-# Annotate with metrics
-#metrics_text = (f'RMSE = {rmse:.3f}\n'
-                #f'NSE = {nse:.3f}\n'
-               # f'$R^2$ = {r2:.2f}')
-#ax.text(0.02, 0.95, metrics_text, transform=ax.transAxes, fontsize=14,
-#       verticalalignment='top', bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.6))
+
 
 # Improve layout and save
 plt.tight_layout()
 plt.savefig('lake_victoria_area_vs_model_pub_ready.png', dpi=300, bbox_inches='tight')
 plt.show()
-
-
-
 
 
 #%%
@@ -1210,15 +1167,6 @@ ax.legend(loc='upper right', fontsize=12)
 plt.tight_layout()
 plt.savefig('lake_victoria_area_vs_model_pub_ready.png', dpi=300, bbox_inches='tight')
 plt.show()
-
-
-
-
-
-
-
-#%%
-#%% ----------------------------------------------------------------------
 
 
 #%% ----------------------------------------------------------------------
@@ -1288,10 +1236,7 @@ ax.set_ylabel('Lake Area (km²)', fontsize=14)
 ax.tick_params(axis='both', labelsize=12)
 ax.legend(loc='upper right', fontsize=12)
 
-#metrics_text = f'RMSE = {rmse:.2f}\nNSE = {nse_val:.2f}\n$R^2$ = {r2:.2f}'
-#ax.text(0.02, 0.95, metrics_text, transform=ax.transAxes, fontsize=14,
-#        verticalalignment='top', bbox=dict(boxstyle='round,pad=0.3',
-#                                           facecolor='white', alpha=0.6))
+
 
 plt.tight_layout()
 plt.savefig('lake_victoria_area_vs_model_with_wu.png', dpi=300, bbox_inches='tight')
@@ -1531,21 +1476,6 @@ plt.ylabel("Lake Area (km²)")
 plt.title("Observed Area Wu et al. (Corrected by Offset) vs Modeled Area (LaVIWaB)")
 plt.grid(True, alpha=0.3)
 
-# Add metrics box on plot
-# metrics_text = (f"Corr = {corr:.3f}\n"
-#                 f"RMSE = {rmse:.2f}\n"
-#                 f"$R^2$ = {r2:.3f}\n"
-#                 f"NSE = {nse_val:.3f}")
-# plt.text(0.02, 0.95, metrics_text, transform=plt.gca().transAxes,
-#          fontsize=12, verticalalignment='top',
-#          bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.6))
-
-# plt.tight_layout()
-# plt.show()
-
-
-
-#%%
 
 #   5.   ANNOMALLY PLOT
 
@@ -1618,24 +1548,8 @@ plt.ylabel("Anomaly in Lake Area (km²)")
 plt.title("Anomalies (Relative to Mean) of Wu Offset vs Modeled (LaVIWaB)")
 plt.grid(True, alpha=0.3)
 
-# Add metrics box
-# metrics_text = (f"Corr = {corr:.3f}\n"
-#                 f"RMSE = {rmse:.2f}\n"
-#                 f"$R^2$ = {r2:.3f}\n"
-#                 f"NSE = {nse_val:.3f}")
-# plt.text(0.02, 0.95, metrics_text, transform=plt.gca().transAxes,
-#          fontsize=12, verticalalignment='top',
-#          bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.6))
-
-# plt.tight_layout()
-# plt.show()
 
 
-
-#%%
-#%%
-#%%
-#Lake Levels 1984-2023
 
 
 
@@ -1687,13 +1601,7 @@ plt.show()
 
 
 #%%%
-
-
 # CALCULATING LAKE SURFACE AREA ABOVE SPECIFIED DEPTH
-
-
-
-
 
 
 # Function to calculate the surface area of the lake above a specified depth
@@ -1731,7 +1639,6 @@ print(f"Calculated surface area of Lake Victoria: {lake_area:.2f} km²")
 
 #%%
 
-
 # Bathymetry and topography to make hypsograph level - area 
 
 # Open bathymetry raster
@@ -1752,8 +1659,7 @@ depth_data[depth_data == bathy.nodata] = np.nan
 
 
 #%%
-
-   
+  
 # 1b. Open topography data and merge with bathymetry 
 
 bathymetry_tiff = "C:\DATA\Lake V Bathymentry\lake_bathymetry_UTM.tif"
@@ -1819,61 +1725,6 @@ depth_bins = np.arange(np.floor(min_depth), np.ceil(max_depth) + bin_size, bin_s
 
 #%%
 
-
-# # 3. Calculate Volumes for different depths
-# pixel_area = pixel_size ** 2  # Area of one pixel in square meters
-# volumes_at_depth = []
-# areas_at_depth = []
-
-# for depth in depth_bins:
-#     # Mask pixels below the current depth
-#     mask = (depth >= (np.nanmax(depth_data) - depth_data) )
-#     # get area at current depth
-#     area_at_depth = np.nansum(mask) * pixel_area  # Sum of areas at this depth (number of pixels * pixel area) m2
-#     # get masked depth
-#     masked_depth = np.where(mask, depth_data, np.nan)
-#     # calculate volume as sum of depth, maxed out at the depth of water
-#     max_depth = np.where(mask, np.minimum(masked_depth, depth), np.nan)
-#     volume = np.nansum(max_depth)
-#     # save output
-#     volumes_at_depth.append(volume)
-#     areas_at_depth.append(area_at_depth)
-
-
-# #%%
-
-# # 4. Plot Depth vs. Volume
-# plt.figure(figsize=(10, 6))
-# plt.plot( np.array(volumes_at_depth) / 1e6 , depth_bins, marker='o', linestyle='-', color='blue')
-# plt.gca().invert_yaxis()  # Depth increases downward
-# plt.title("Lake Victoria Depth-Volume Curve")
-# plt.xlabel("Volume (km³)")
-# plt.ylabel("Depth (m)")
-# plt.grid()
-# plt.show()
-
-# #%%
-
-# # 5. Depth vs. area
-
-# plt.figure(figsize=(10, 6))
-# plt.plot( np.array(areas_at_depth) / 1e6 , depth_bins, marker='o', linestyle='-', color='blue')
-# plt.gca().invert_yaxis()  # Depth increases downward
-# plt.title("Lake Victoria Depth-Area Curve")
-# plt.xlabel("Area (km$^2$)")
-# plt.ylabel("Depth (m)")
-# plt.grid()
-# plt.show()
-
-
-
-
-
-#%% PART 2 : Add topography as well to extend beyond bathymetry confines 
-
-
-
-
 # 2. Define Depth Bins
 bin_size = .01  # Bin thickness in meters
 min_depth = np.nanmin(depth_data)  # Minimum depth
@@ -1928,55 +1779,6 @@ print(f"Bath_Topo at this location: {bath_topo_at_max_bathy}")
 #Maximum Bathymetry Value: 82.76689147949219
 #Bath_Topo at this location: 1051.233154296875
 
-
-
-#%%
-
-# # make it into a function
-
-# # get point where lake has maximum abslute depth
-# max_index = np.unravel_index(np.nanargmax(bathymetry_data), bathymetry_data.shape)
-# # Get the corresponding bath_topo value, ie baseline elevation at this point
-# bath_topo_at_max_bathy = bath_topo[max_index]
-
-# def calculate_areas_per_depth_bin(
-#         depth_bins,
-#         bath_topo, # bathymetry and topography together 
-#         bath_topo_at_max_bathy = bath_topo_at_max_bathy,
-#         pixel_area = pixel_size ** 2 # pixel_size has to be defined 
-#         ):
-    
-#     volumes_at_depth = []
-#     areas_at_depth = []
-
-#     for depth in depth_bins:
-#         # Mask pixels below the current depth
-#         mask = (bath_topo <= bath_topo_at_max_bathy + depth )
-#         # get area at current depth
-#         area_at_depth = np.nansum(mask) * pixel_area  # Sum of areas at this depth (number of pixels * pixel area) m2
-#         # get masked depth
-#         masked_depth = np.where(mask, bath_topo - bath_topo_at_max_bathy , np.nan)
-#         # calculate volume as sum of depth*area, maxed out at the depth of water
-#         max_depth = np.where(mask, np.minimum(masked_depth, depth), np.nan)
-#         volume = np.nansum(max_depth * pixel_area)
-#         # save output
-#         volumes_at_depth.append(volume)
-#         areas_at_depth.append(area_at_depth)
-        
-        
-#     data=np.stack([depth_bins, np.array(areas_at_depth), np.array(volumes_at_depth)]).T
-    
-#     df_area_depth_curve = pd.DataFrame(
-#         data=data,
-#         columns= ['depth_m','area_m2', 'vol_m3']
-#         )
-    
-#     return df_area_depth_curve.set_index('depth_m')
-
-
-
-
-# df_area_depth_curve = calculate_areas_per_depth_bin(depth_bins, bath_topo)
 
 #%%
 
@@ -2182,97 +1984,6 @@ plt.show()
 
 
 #%%
-
-
-# MAPPING LAKE EXTENT SUBMERGED BETWEEN 1138M AND 1135M
-
-# import rasterio
-# import numpy as np
-# import matplotlib.pyplot as plt
-# from rasterio.warp import reproject, Resampling
-
-# # Paths to the bathymetry and topography GeoTIFF files
-# tif_file_bathymetry = r"C:\DATA\Lake V Bathymentry\LakeVictoria_BathymetryGEE.tif"
-# tif_file_topography = r"C:\DATA\Lake Basin Topography\LakeVictoriaBasinDEM.tif"
-
-# # Read the raster data
-# def read_raster(tif_file):
-#     with rasterio.open(tif_file) as src:
-#         data = src.read(1)  # Read the first band (elevation data)
-#         transform = src.transform
-#         bounds = src.bounds
-#         crs = src.crs
-#         nodata = src.nodata
-#     return data, transform, bounds, crs, nodata
-
-# bathymetry_data, bathymetry_transform, bathymetry_bounds, bathymetry_crs, bathymetry_nodata = read_raster(tif_file_bathymetry)
-# topography_data, topography_transform, topography_bounds, topography_crs, topography_nodata = read_raster(tif_file_topography)
-
-# # Resample topography data to match bathymetry resolution
-# def resample_raster(src_data, src_transform, src_crs, target_shape, target_transform, target_crs):
-#     resampled_data = np.empty(target_shape, dtype=np.float32)
-#     reproject(
-#         src_data, resampled_data,
-#         src_transform=src_transform,
-#         src_crs=src_crs,
-#         dst_transform=target_transform,
-#         dst_crs=target_crs,
-#         resampling=Resampling.nearest
-#     )
-#     return resampled_data
-
-# topography_resampled = resample_raster(
-#     topography_data, topography_transform, topography_crs,
-#     bathymetry_data.shape, bathymetry_transform, bathymetry_crs
-# )
-
-# # Identify water at 1135m and transition areas
-# def calculate_areas(topography, bathymetry, elevation_high, elevation_low):
-#     water_at_low = topography < elevation_low  # Water at elevation 1135m
-#     submerged_at_high = topography < elevation_high  # Water at elevation 1142m
-#     transition_strip = np.logical_and(submerged_at_high, ~water_at_low)  # Exposed between 1142m and 1135m
-#     return water_at_low, transition_strip
-
-# elevation_high = 1145
-# elevation_low = 1134.3
-# water_at_low, transition_strip = calculate_areas(
-#     topography_resampled, bathymetry_data, elevation_high, elevation_low
-# )
-
-# # Generate a static map showing water and the transition strip
-# fig, ax = plt.subplots(figsize=(12, 10), dpi=300)
-# plt.title("Lake Victoria Flood Prone Areas", fontsize=18)
-
-# # Base map: Topography
-# plt.imshow(topography_resampled, extent=(bathymetry_bounds.left, bathymetry_bounds.right,
-#                                          bathymetry_bounds.bottom, bathymetry_bounds.top),
-#            cmap='terrain', alpha=0.7)
-
-# # Overlay water area at 1135m in blue
-# plt.imshow(np.where(water_at_low, 1, np.nan), extent=(bathymetry_bounds.left, bathymetry_bounds.right,
-#                                                      bathymetry_bounds.bottom, bathymetry_bounds.top),
-#            cmap='Blues', alpha=0.6, label='Water at 1135m')
-
-# # Overlay transition strip in maroon
-# plt.imshow(np.where(transition_strip, 1, np.nan), extent=(bathymetry_bounds.left, bathymetry_bounds.right,
-#                                                           bathymetry_bounds.bottom, bathymetry_bounds.top),
-#            cmap='Reds', alpha=0.8, label='Transition Strip')
-
-
-# # Labels and Color Bar
-# plt.colorbar(label="Elevation (m)")
-# plt.xlabel("Longitude (°)")
-# plt.ylabel("Latitude (°)")
-# plt.grid(alpha=0.5, linestyle='--')
-# plt.tight_layout()
-
-# # Save the map as an image
-# output_map_path = r"C:\TEMP\LakeVictoria_1135m_water_transition_strip.png"
-# plt.savefig(output_map_path, dpi=300)
-# plt.show()
-
-# print(f"Map saved successfully: {output_map_path}")
-
 
 
 #%% Plot WB terms monthly acc
