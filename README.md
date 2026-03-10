@@ -19,7 +19,7 @@ The model takes as inputs:
     - observational run: semi-observational outflow `input_data/outflow` 
     - attribution runs: calculated by the model using the Agreed Curve.
 
-The model is based on the Python version from [Pietroiusti et al. 2024, ESD, "Possible role of anthropogenic climate change in the record-breaking 2020 Lake Victoria levels and floods"](https://esd.copernicus.org/articles/15/225/2024/).
+The model is based on the Python version from [Pietroiusti et al. 2024, ESD, "Possible role of anthropogenic climate change in the record-breaking 2020 Lake Victoria levels and floods"](https://esd.copernicus.org/articles/15/225/2024/). The version was improved to include lake levels and lake extent/area with future projections.
 
 
 ## Data for the LaVIWaB model 
